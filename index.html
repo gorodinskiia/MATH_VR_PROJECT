@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Babylon.js VR Example</title>
+  <title>Babylon.js VR with Ground</title>
   <style>
     html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
     canvas { width: 100%; height: 100%; touch-action: none; }
@@ -18,13 +18,13 @@
     const createScene = async function () {
       const scene = new BABYLON.Scene(engine);
 
-      // Camera
+      // Camera (optional for non-VR preview)
       const camera = new BABYLON.ArcRotateCamera(
         "camera",
         Math.PI / 2,
         Math.PI / 2,
-        2,
-        BABYLON.Vector3.Zero(),
+        5,
+        new BABYLON.Vector3(0, 1, 0),
         scene
       );
       camera.attachControl(canvas, true);
@@ -38,6 +38,7 @@
 
       // Sphere
       const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 1 }, scene);
+      sphere.position.y = 1; // lift above the ground
       const sphereMaterial = new BABYLON.StandardMaterial("sphereMat", scene);
       sphereMaterial.diffuseTexture = new BABYLON.Texture("ballTexture.jpg", scene);
       sphere.material = sphereMaterial;
@@ -51,8 +52,14 @@
       skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
       skybox.material = skyboxMaterial;
 
-      // VR / WebXR
-      await scene.createDefaultXRExperienceAsync({ floorMeshes: [skybox] });
+      // Ground plane for VR
+      const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 10, height: 10 }, scene);
+      const groundMaterial = new BABYLON.StandardMaterial("groundMat", scene);
+      groundMaterial.diffuseColor = new BABYLON.Color3(0.4, 0.4, 0.4); // grey floor
+      ground.material = groundMaterial;
+
+      // VR / WebXR setup
+      await scene.createDefaultXRExperienceAsync({ floorMeshes: [ground] });
 
       return scene;
     };
