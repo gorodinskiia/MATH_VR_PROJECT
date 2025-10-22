@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Babylon.js Textured Sphere</title>
+    <style>
+      html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+      canvas { width: 100%; height: 100%; touch-action: none; }
+    </style>
+  </head>
+  <body>
+    <canvas id="renderCanvas"></canvas>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script>
+      const canvas = document.getElementById("renderCanvas");
+      const engine = new BABYLON.Engine(canvas, true);
+
+      const createScene = function () {
+        const scene = new BABYLON.Scene(engine);
+
+        // Camera
+        const camera = new BABYLON.ArcRotateCamera(
+          "camera",
+          Math.PI / 2,
+          Math.PI / 2,
+          2,
+          BABYLON.Vector3.Zero(),
+          scene
+        );
+        camera.attachControl(canvas, true);
+
+        // Light
+        const light = new BABYLON.HemisphericLight(
+          "light",
+          new BABYLON.Vector3(1, 1, 0),
+          scene
+        );
+
+        // Sphere
+        const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 1 }, scene);
+
+        // --- Apply texture to sphere ---
+        const sphereMaterial = new BABYLON.StandardMaterial("sphereMat", scene);
+        sphereMaterial.diffuseTexture = new BABYLON.Texture("ballTexture.jpg", scene);
+        sphere.material = sphereMaterial;
+
+        // --- Skybox ---
+        const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
+        const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMat", scene);
+        skyboxMaterial.backFaceCulling = false;
+        skyboxMaterial.diffuseTexture = new BABYLON.Texture("background.jpg", scene);
+        skyboxMaterial.diffuseTexture.coordinatesMode = BABYLON.Texture.FIXED_EQUIRECTANGULAR_MODE;
+        skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+        skybox.material = skyboxMaterial;
+
+        return scene;
+      };
+
+      const scene = createScene();
+      engine.runRenderLoop(() => scene.render());
+      window.addEventListener("resize", () => engine.resize());
+    </script>
+  </body>
+</html>
