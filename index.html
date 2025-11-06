@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Babylon.js VR with Sound</title>
+  <title>Babylon.js VR with Sound, Picture Boards, Donut & Cup</title>
   <style>
     html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
     canvas { width: 100%; height: 100%; touch-action: none; }
@@ -11,6 +11,8 @@
 <body>
   <canvas id="renderCanvas"></canvas>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+
   <script>
     const canvas = document.getElementById("renderCanvas");
     const engine = new BABYLON.Engine(canvas, true);
@@ -18,27 +20,24 @@
     const createScene = async function () {
       const scene = new BABYLON.Scene(engine);
 
-      // Camera (optional for non-VR preview)
+      // Camera (for desktop preview)
       const camera = new BABYLON.ArcRotateCamera(
         "camera",
         Math.PI / 2,
-        Math.PI / 2,
-        5,
+        Math.PI / 2.5,
+        8,
         new BABYLON.Vector3(0, 1, 0),
         scene
       );
       camera.attachControl(canvas, true);
 
-      // Light
-      const light = new BABYLON.HemisphericLight(
-        "light",
-        new BABYLON.Vector3(1, 1, 0),
-        scene
-      );
+      // Lighting
+      const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0), scene);
+      light.intensity = 0.9;
 
-      // Sphere
+      // Sphere (example object)
       const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 1 }, scene);
-      sphere.position.y = 1; // lift above the ground
+      sphere.position.y = 1;
       const sphereMaterial = new BABYLON.StandardMaterial("sphereMat", scene);
       sphereMaterial.diffuseTexture = new BABYLON.Texture("ballTexture.jpg", scene);
       sphere.material = sphereMaterial;
@@ -52,7 +51,7 @@
       skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
       skybox.material = skyboxMaterial;
 
-      // Ground plane with texture
+      // Ground
       const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 10, height: 10 }, scene);
       const groundMaterial = new BABYLON.StandardMaterial("groundMat", scene);
       groundMaterial.diffuseTexture = new BABYLON.Texture("groundTexture.jpg", scene);
@@ -60,20 +59,156 @@
       groundMaterial.diffuseTexture.vScale = 2;
       ground.material = groundMaterial;
 
-      // --- Add continuous sound ---
+      // --- Picture boards with text ---
+      function createPictureBoard(name, imageUrl, label, position) {
+        const plane = BABYLON.MeshBuilder.CreatePlane(name, { width: 1.5, height: 1.8 }, scene);
+        plane.position = position;
+        plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_Y; // Always face camera
+
+        // Make sure the plane is double-sided so you can see it from any angle
+        plane.material = new BABYLON.StandardMaterial(name + "Mat", scene);
+        plane.material.backFaceCulling = false;
+
+        // GUI texture for the plane
+        const texture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(plane, 1024, 1024, false);
+
+        // Container for layout
+        const stackPanel = new BABYLON.GUI.StackPanel();
+        stackPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        stackPanel.height = 1;
+        stackPanel.width = 1;
+        texture.addControl(stackPanel);
+
+        // --- Text on top ---
+        const text = new BABYLON.GUI.TextBlock();
+        text.text = label;
+        text.color = "white";
+        text.fontSize = 48;
+        text.height = "200px";
+        text.textWrapping = true;
+        text.paddingBottom = "20px";
+        stackPanel.addControl(text);
+
+        // --- Image below text ---
+        const image = new BABYLON.GUI.Image(name + "Img", imageUrl);
+        image.width = 1;
+        image.height = 0.8;
+        image.stretch = BABYLON.GUI.Image.STRETCH_UNIFORM;
+        image.paddingTop = "20px";
+        stackPanel.addControl(image);
+
+        return plane;
+      }
+
+      // Example boards
+      createPictureBoard("poster1", "nd.jpg", "NORMAL DISTRIBUTION", new BABYLON.Vector3(2, 1.2, 2));
+      createPictureBoard("poster2", "bd.jpg", "OTHER DISTRIBUTIONS", new BABYLON.Vector3(-2, 1.2, 3));
+      createPictureBoard("poster3", "guass.jpg", "GAUSS", new BABYLON.Vector3(3, 1.2, -1));
+      createPictureBoard("poster4", "laplace.jpg", "LAPLACE", new BABYLON.Vector3(4, 1.2, 4));
+      createPictureBoard("poster5", "beta.jpg", "BETA DISTRIBUTION", new BABYLON.Vector3(-3, 1.2, -3));
+      createPictureBoard("poster6", "cauchy.jpg", "CAUCHY DISTRIBUTION", new BABYLON.Vector3(0, 1.2, -4));
+      createPictureBoard("poster7", "gamma.jpg", "GAMMA DISTRIBUTION", new BABYLON.Vector3(5, 1.2, 0));
+      createPictureBoard("poster8", "gumbel.jpg", "GUMBEL DISTRIBUTION", new BABYLON.Vector3(-5, 1.2, 1));
+      createPictureBoard("poster9", "laplace.jpg", "LAPLACE", new BABYLON.Vector3(1, 1.2, -5));
+      createPictureBoard("poster10", "log.jpg", "LOG DISTRIBUTION", new BABYLON.Vector3(-4, 1.2, 5));
+      createPictureBoard("poster11", "pareto.jpg", "PARETO DISTRIBUTION", new BABYLON.Vector3(4, 1.2, -3));
+      createPictureBoard("poster12", "weiball.jpg", "WEIBALL DISTRIBUTION", new BABYLON.Vector3(-1, 1.2, 4));
+      createPictureBoard("poster13", "uniform.jpg", "UNIFORM DISTRIBUTION", new BABYLON.Vector3(2, 1.2, -2));
+      createPictureBoard("poster14", "exponential.jpg", "EXPONENTIAL DISTRIBUTION", new BABYLON.Vector3(-2, 1.2, -1));
+      createPictureBoard("poster15", "hg.jpg", "HYPER GEOMETRIC DISTRIBUTION", new BABYLON.Vector3(0, 1.2, 5));
+
+      // --- Donut (torus) in the air ---
+      const donut = BABYLON.MeshBuilder.CreateTorus("donut", {
+        diameter: 1.6,
+        thickness: 0.5,
+        tessellation: 64
+      }, scene);
+      donut.position = new BABYLON.Vector3(-1.5, 2.2, -0.5);
+      const donutMat = new BABYLON.StandardMaterial("donutMat", scene);
+      donutMat.diffuseColor = new BABYLON.Color3(0.9, 0.5, 0.2);
+      donut.material = donutMat;
+
+      // --- Coffee cup (hollow cup made with CSG) ---
+      // Outer cup
+      const cupOuter = BABYLON.MeshBuilder.CreateCylinder("cupOuter", {
+        height: 1.1,
+        diameterTop: 1.1,
+        diameterBottom: 1.1,
+        tessellation: 64
+      }, scene);
+      cupOuter.position = new BABYLON.Vector3(1.5, 1.5, 0.5);
+
+      // Inner cylinder to subtract (slightly shorter and smaller)
+      const cupInner = BABYLON.MeshBuilder.CreateCylinder("cupInner", {
+        height: 1.05,
+        diameterTop: 0.8,
+        diameterBottom: 0.8,
+        tessellation: 64
+      }, scene);
+      cupInner.position = cupOuter.position.clone();
+
+      // Make materials so we can assign afterwards
+      const cupMat = new BABYLON.StandardMaterial("cupMat", scene);
+      cupMat.diffuseColor = new BABYLON.Color3(0.95, 0.95, 0.9); // off-white
+
+      cupOuter.material = cupMat;
+      cupInner.material = new BABYLON.StandardMaterial("cupInnerMat", scene);
+
+      // Use CSG to create hollow cup
+      const outerCSG = BABYLON.CSG.FromMesh(cupOuter);
+      const innerCSG = BABYLON.CSG.FromMesh(cupInner);
+      const hollowCSG = outerCSG.subtract(innerCSG);
+
+      // Convert CSG back to mesh
+      const cup = hollowCSG.toMesh("cup", cupMat, scene);
+      // remove original meshes used for CSG
+      cupOuter.dispose();
+      cupInner.dispose();
+
+      // Create handle as a torus and position it, then parent to cup (no CSG merge necessary)
+      const handle = BABYLON.MeshBuilder.CreateTorus("handle", {
+        diameter: 0.6,
+        thickness: 0.15,
+        tessellation: 48
+      }, scene);
+      // rotate handle so it makes a cup handle shape and place at side
+      handle.rotation.z = Math.PI / 2;
+      handle.rotation.x = Math.PI / 2;
+      handle.position = new BABYLON.Vector3(cup.position.x + 0.6, cup.position.y + 0.1, cup.position.z);
+      handle.material = cupMat;
+      handle.parent = cup; // parent handle to cup so they move together
+
+      // raise the cup a little so it sits in the air nicely
+      cup.position.y = 1.6;
+
+      // --- Simple animations ---
+      scene.registerBeforeRender(function () {
+        const t = performance.now() * 0.001;
+        donut.rotation.y += 0.01; // slow spin
+        donut.rotation.x = Math.sin(t) * 0.05;
+        // bob the cup up/down gently
+        cup.position.y = 1.6 + Math.sin(t * 1.5) * 0.08;
+      });
+
+      // --- Background Sound ---
       const music = new BABYLON.Sound(
-        "backgroundMusic",           // Name
-        "Crazy Frog - Axel F (Official Video) (1).mp3",            // File path or URL
+        "backgroundMusic",
+        "Crazy Frog - Axel F (Official Video) (1).mp3",
         scene,
-        null,                        // No ready-to-play callback
+        null,
         {
-          loop: true,                // Repeat forever
-          autoplay: true,            // Play immediately
-          volume: 0.5                // Adjust volume (0.0 - 1.0)
+          loop: true,
+          autoplay: false,
+          volume: 0.5
         }
       );
 
-      // VR / WebXR setup
+      // Enable music playback after user interaction
+      window.addEventListener("click", () => {
+        if (!music.isPlaying) music.play();
+      });
+
+      // --- WebXR / VR Setup ---
       await scene.createDefaultXRExperienceAsync({ floorMeshes: [ground] });
 
       return scene;
