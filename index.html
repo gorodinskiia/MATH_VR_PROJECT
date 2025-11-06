@@ -203,6 +203,16 @@
         }
       );
 
+      const xr = await scene.createDefaultXRExperienceAsync({ floorMeshes: [ground] });
+
+      // Start music after entering VR
+      xr.baseExperience.onStateChangedObservable.add((state) => {
+        if (state === BABYLON.WebXRState.IN_XR && !music.isPlaying) {
+          music.play();
+        }
+      });
+
+
       // Enable music playback after user interaction
       window.addEventListener("click", () => {
         if (!music.isPlaying) music.play();
