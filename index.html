@@ -144,110 +144,61 @@
       donut.position = new BABYLON.Vector3(-1.5, 2.2, -0.5);
       const donutMat = new BABYLON.StandardMaterial("donutMat", scene);
       donutMat.diffuseColor = new BABYLON.Color3(0.9,0.5,0.2);
+      donutMat.alpha = 0; // start invisible
       donut.material = donutMat;
 
-      // --- Coffee cup (hollow) ---
-      const cupOuter = BABYLON.MeshBuilder.CreateCylinder("cupOuter", { height: 1.1, diameterTop: 1.1, diameterBottom: 1.1, tessellation: 64 }, scene);
-      cupOuter.position = new BABYLON.Vector3(1.5, 1.5, 0.5);
-
-      const cupInner = BABYLON.MeshBuilder.CreateCylinder("cupInner", { height: 1.05, diameterTop: 0.8, diameterBottom: 0.8, tessellation: 64 }, scene);
-      cupInner.position = cupOuter.position.clone();
-
+      // --- Solid Coffee Cup ---
+      const cup = BABYLON.MeshBuilder.CreateCylinder("cup", { height: 1.1, diameterTop: 1.1, diameterBottom: 1.1, tessellation: 64 }, scene);
+      cup.position = new BABYLON.Vector3(1.5, 1.6, 0.5);
       const cupMat = new BABYLON.StandardMaterial("cupMat", scene);
       cupMat.diffuseColor = new BABYLON.Color3(0.95, 0.95, 0.9);
-      cupOuter.material = cupMat;
-      cupInner.material = new BABYLON.StandardMaterial("cupInnerMat", scene);
-
-      // Hollow cup using CSG
-      const outerCSG = BABYLON.CSG.FromMesh(cupOuter);
-      const innerCSG = BABYLON.CSG.FromMesh(cupInner);
-      const hollowCSG = outerCSG.subtract(innerCSG);
-      const cup = hollowCSG.toMesh("cup", cupMat, scene);
-      cupOuter.dispose();
-      cupInner.dispose();
+      cupMat.alpha = 0; // start invisible
+      cup.material = cupMat;
 
       // --- Handle ---
-      // Parent first so local coordinates work
       const handle = BABYLON.MeshBuilder.CreateTorus("handle", { diameter: 0.45, thickness: 0.1, tessellation: 48 }, scene);
       handle.parent = cup;
-
-      // Local position relative to cup
-      handle.position.set(0.55, 0.05, 0); // X offset = 0.55 to the side, slight Y lift
-      handle.rotation.x = Math.PI / 2;     // upright rotation
-      handle.rotation.y = 0;               // facing the right way
-      handle.rotation.z = 0;
-
-      // Material
+      handle.position.set(0.55, 0.05, 0);
+      handle.rotation.x = Math.PI/2;
       handle.material = cupMat;
 
-      // Raise the cup a bit in the air
-      cup.position.y = 1.6;
-
-      // --- Simple Animations ---
-      scene.registerBeforeRender(() => {
-        const t = performance.now()*0.001;
-        donut.rotation.y += 0.01;
-        donut.rotation.x = Math.sin(t)*0.05;
-        cup.position.y = 1.6 + Math.sin(t*1.5)*0.08;
+      // --- Background Music ---
+      const music = new BABYLON.Sound("backgroundMusic", "Crazy_Frog.mp3", scene, null, { loop:true, autoplay:false, volume:0.5 });
+      window.addEventListener("keydown", async (event) => {
+          if(event.key.toLowerCase() === "m"){
+              if(!music.isPlaying){
+                  await music.play();
+                  console.log("Music started!");
+              } else {
+                  music.pause();
+                  console.log("Music paused!");
+              }
+          }
       });
 
-      // --- Background Music ---
-      // --- Background Sound ---
-      // Create the music
-// Create the music
-// Create the music
+      // --- Animations (fade in/out + motion) ---
+      let t = 0;
+      scene.registerBeforeRender(() => {
+          t += 0.01;
+          const alpha = (Math.sin(t) + 1) / 2; // oscillates 0→1
+          donutMat.alpha = alpha;
+          cupMat.alpha = alpha;
 
-// Wait until the scene is ready
-// --- Background Music ---
-const music = new BABYLON.Sound(
-    "backgroundMusic",
-    "Crazy_Frog.mp3", // Your MP3 file
-    scene,            // The Babylon scene
-    null,             // OnReady callback (optional)
-    {
-        loop: true,
-        autoplay: false, // Must be triggered by user interaction
-        volume: 0.5
-    }
-);
-
-// Listen for key press (M) to play/pause
-window.addEventListener("keydown", async (event) => {
-    if(event.key.toLowerCase() === "m"){
-        if(!music.isPlaying){
-            await music.play();
-            console.log("Music started!");
-        } else {
-            music.pause();
-            console.log("Music paused!");
-        }
-    }
-});
-
-    // Function to initialize audio context on user interaction
-    async function initializeAudio() {
-        if (BABYLON.Engine.audioEngine && !BABYLON.Engine.audioEngine.isInitialized()) {
-            await BABYLON.Engine.audioEngine.initializeAsync();
-        }
-    }
-
-    // Play music after user interaction
-
-async function playBackgroundMusic() {
-        await initializeAudio(); // Ensure audio engine is ready
-        const music = await BABYLON.CreateStreamingSoundAsync("music", "Crazy_Frog.mp3", { loop: true, autoplay: true });
-        // The sound will start playing if autoplay is true, or you can call music.play() manually.
-    }
+          donut.rotation.y += 0.01;
+          donut.rotation.x = Math.sin(performance.now()*0.001) * 0.05;
+          cup.position.y = 1.6 + Math.sin(performance.now()*0.001*1.5)*0.08;
+      });
 
       // --- WebXR Setup ---
       const xr = await scene.createDefaultXRExperienceAsync({ floorMeshes:[ground] });
-      xr.baseExperience.onStateChangedObservable.add(state => { if(state===BABYLON.WebXRState.IN_XR && !music.isPlaying) music.play(); });
-      window.addEventListener("click",()=>{if(!music.isPlaying) music.play();});
 
       return scene;
     };
 
-    (async function(){ const scene = await createScene(); engine.runRenderLoop(()=>scene.render()); })();
+    (async function(){ 
+      const scene = await createScene(); 
+      engine.runRenderLoop(()=>scene.render()); 
+    })();
     window.addEventListener("resize",()=>engine.resize());
   </script>
 </body>
