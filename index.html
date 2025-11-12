@@ -20,7 +20,7 @@
     const createScene = async function () {
       const scene = new BABYLON.Scene(engine);
 
-      // Camera (for desktop preview)
+      // Camera
       const camera = new BABYLON.ArcRotateCamera(
         "camera",
         Math.PI / 2,
@@ -34,13 +34,6 @@
       // Lighting
       const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0), scene);
       light.intensity = 0.9;
-
-      // Sphere (example object)
-      const sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 1 }, scene);
-      sphere.position.y = 1;
-      const sphereMaterial = new BABYLON.StandardMaterial("sphereMat", scene);
-      sphereMaterial.diffuseTexture = new BABYLON.Texture("ballTexture.jpg", scene);
-      sphere.material = sphereMaterial;
 
       // Skybox
       const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
@@ -59,219 +52,203 @@
       groundMaterial.diffuseTexture.vScale = 2;
       ground.material = groundMaterial;
 
-      // --- Picture boards with text and stands ---
-// --- Picture boards with text, perfectly aligned frames, and stands ---
-function createPictureBoard(name, imageUrl, label, position) {
-  // --- Picture plane ---
-  const plane = BABYLON.MeshBuilder.CreatePlane(name + "Plane", { width: 1.5, height: 1.8 }, scene);
-  plane.position = position.clone();
-  plane.billboardMode = 0;
-  plane.rotation.y = Math.PI; // flip the plane itself so front side faces camera
+      // --- Picture Board Function ---
+      function createPictureBoard(name, imageUrl, label, position) {
+        const plane = BABYLON.MeshBuilder.CreatePlane(name + "Plane", { width: 1.5, height: 1.8 }, scene);
+        plane.position = position.clone();
+        plane.rotation.y = Math.PI;
 
-  // --- Frame around the picture ---
-  const frameThickness = 0.08;
-  const frame = BABYLON.MeshBuilder.CreateBox(name + "Frame", {
-    width: 1.5 + frameThickness,
-    height: 1.8 + frameThickness,
-    depth: 0.1,
-  }, scene);
-  frame.position = position.clone();
-  frame.position.z -= 0.06;
-  const frameMat = new BABYLON.StandardMaterial(name + "FrameMat", scene);
-  frameMat.diffuseColor = new BABYLON.Color3(0.4, 0.3, 0.2);
-  frameMat.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
-  frame.material = frameMat;
+        const frameThickness = 0.08;
+        const frame = BABYLON.MeshBuilder.CreateBox(name + "Frame", {
+          width: 1.5 + frameThickness,
+          height: 1.8 + frameThickness,
+          depth: 0.1
+        }, scene);
+        frame.position = position.clone();
+        frame.position.z -= 0.06;
+        const frameMat = new BABYLON.StandardMaterial(name + "FrameMat", scene);
+        frameMat.diffuseColor = new BABYLON.Color3(0.4, 0.3, 0.2);
+        frameMat.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+        frame.material = frameMat;
 
-  // --- Stand / Pole ---
-  const standHeight = position.y - 0.05;
-  const stand = BABYLON.MeshBuilder.CreateCylinder(name + "Stand", {
-    height: standHeight,
-    diameter: 0.05,
-  }, scene);
-  stand.position = new BABYLON.Vector3(position.x, standHeight / 2, position.z - 0.05);
-  const standMat = new BABYLON.StandardMaterial(name + "StandMat", scene);
-  standMat.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.7);
-  stand.material = standMat;
+        const standHeight = position.y - 0.05;
+        const stand = BABYLON.MeshBuilder.CreateCylinder(name + "Stand", {
+          height: standHeight,
+          diameter: 0.05
+        }, scene);
+        stand.position = new BABYLON.Vector3(position.x, standHeight / 2, position.z - 0.05);
+        const standMat = new BABYLON.StandardMaterial(name + "StandMat", scene);
+        standMat.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.7);
+        stand.material = standMat;
 
-  // --- Base ---
-  const base = BABYLON.MeshBuilder.CreateCylinder(name + "Base", {
-    height: 0.02,
-    diameter: 0.25,
-  }, scene);
-  base.position = new BABYLON.Vector3(position.x, 0.01, position.z - 0.05);
-  const baseMat = new BABYLON.StandardMaterial(name + "BaseMat", scene);
-  baseMat.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
-  base.material = baseMat;
+        const base = BABYLON.MeshBuilder.CreateCylinder(name + "Base", { height: 0.02, diameter: 0.25 }, scene);
+        base.position = new BABYLON.Vector3(position.x, 0.01, position.z - 0.05);
+        const baseMat = new BABYLON.StandardMaterial(name + "BaseMat", scene);
+        baseMat.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+        base.material = baseMat;
 
-  // --- GUI texture (faces camera properly now) ---
-  const texture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(plane, 1024, 1024, false);
+        const texture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(plane, 1024, 1024, false);
+        const stackPanel = new BABYLON.GUI.StackPanel();
+        stackPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        stackPanel.height = 1;
+        stackPanel.width = 1;
+        texture.addControl(stackPanel);
 
-  const stackPanel = new BABYLON.GUI.StackPanel();
-  stackPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-  stackPanel.height = 1;
-  stackPanel.width = 1;
-  texture.addControl(stackPanel);
+        const text = new BABYLON.GUI.TextBlock();
+        text.text = label;
+        text.color = "white";
+        text.fontSize = 48;
+        text.height = "200px";
+        text.textWrapping = true;
+        text.paddingBottom = "20px";
+        stackPanel.addControl(text);
 
-  const text = new BABYLON.GUI.TextBlock();
-  text.text = label;
-  text.color = "white";
-  text.fontSize = 48;
-  text.height = "200px";
-  text.textWrapping = true;
-  text.paddingBottom = "20px";
-  stackPanel.addControl(text);
+        const image = new BABYLON.GUI.Image(name + "Img", imageUrl);
+        image.width = 1;
+        image.height = 0.8;
+        image.stretch = BABYLON.GUI.Image.STRETCH_UNIFORM;
+        image.paddingTop = "20px";
+        stackPanel.addControl(image);
 
-  const image = new BABYLON.GUI.Image(name + "Img", imageUrl);
-  image.width = 1;
-  image.height = 0.8;
-  image.stretch = BABYLON.GUI.Image.STRETCH_UNIFORM;
-  image.paddingTop = "20px";
-  stackPanel.addControl(image);
+        const frameGroup = new BABYLON.TransformNode(name + "Group", scene);
+        plane.parent = frameGroup;
+        frame.parent = frameGroup;
+        stand.parent = frameGroup;
+        base.parent = frameGroup;
 
-  // --- Group all parts ---
-  const frameGroup = new BABYLON.TransformNode(name + "Group", scene);
-  plane.parent = frameGroup;
-  frame.parent = frameGroup;
-  stand.parent = frameGroup;
-  base.parent = frameGroup;
+        return frameGroup;
+      }
 
-  return frameGroup;
-}
+      // --- Picture Boards ---
+      const boards = [
+        ["poster1","nd.jpg","NORMAL DISTRIBUTION",2,1.2,2],
+        ["poster2","bd.jpg","OTHER DISTRIBUTIONS",-2,1.2,3],
+        ["poster3","guass.jpg","GAUSS",3,1.2,-1],
+        ["poster4","laplace.jpg","LAPLACE",4,1.2,4],
+        ["poster5","beta.jpg","BETA DISTRIBUTION",-3,1.2,-3],
+        ["poster6","cauchy.jpg","CAUCHY DISTRIBUTION",0,1.2,-4],
+        ["poster7","gamma.jpg","GAMMA DISTRIBUTION",5,1.2,0],
+        ["poster8","gumbel.jpg","GUMBEL DISTRIBUTION",-5,1.2,1],
+        ["poster9","laplace.jpg","LAPLACE",1,1.2,-5],
+        ["poster10","log.jpg","LOG DISTRIBUTION",-4,1.2,5],
+        ["poster11","pareto.jpg","PARETO DISTRIBUTION",4,1.2,-3],
+        ["poster12","weiball.jpg","WEIBALL DISTRIBUTION",-1,1.2,4],
+        ["poster13","uniform.jpg","UNIFORM DISTRIBUTION",2,1.2,-2],
+        ["poster14","exponential.jpg","EXPONENTIAL DISTRIBUTION",-2,1.2,-1],
+        ["poster15","hg.jpg","HYPER GEOMETRIC DISTRIBUTION",0,1.2,5]
+      ];
+      boards.forEach(b => createPictureBoard(b[0],b[1],b[2],new BABYLON.Vector3(b[3],b[4],b[5])));
 
-
-
-
-
-      // Example boards
-      createPictureBoard("poster1", "nd.jpg", "NORMAL DISTRIBUTION", new BABYLON.Vector3(2, 1.2, 2));
-      createPictureBoard("poster2", "bd.jpg", "OTHER DISTRIBUTIONS", new BABYLON.Vector3(-2, 1.2, 3));
-      createPictureBoard("poster3", "guass.jpg", "GAUSS", new BABYLON.Vector3(3, 1.2, -1));
-      createPictureBoard("poster4", "laplace.jpg", "LAPLACE", new BABYLON.Vector3(4, 1.2, 4));
-      createPictureBoard("poster5", "beta.jpg", "BETA DISTRIBUTION", new BABYLON.Vector3(-3, 1.2, -3));
-      createPictureBoard("poster6", "cauchy.jpg", "CAUCHY DISTRIBUTION", new BABYLON.Vector3(0, 1.2, -4));
-      createPictureBoard("poster7", "gamma.jpg", "GAMMA DISTRIBUTION", new BABYLON.Vector3(5, 1.2, 0));
-      createPictureBoard("poster8", "gumbel.jpg", "GUMBEL DISTRIBUTION", new BABYLON.Vector3(-5, 1.2, 1));
-      createPictureBoard("poster9", "laplace.jpg", "LAPLACE", new BABYLON.Vector3(1, 1.2, -5));
-      createPictureBoard("poster10", "log.jpg", "LOG DISTRIBUTION", new BABYLON.Vector3(-4, 1.2, 5));
-      createPictureBoard("poster11", "pareto.jpg", "PARETO DISTRIBUTION", new BABYLON.Vector3(4, 1.2, -3));
-      createPictureBoard("poster12", "weiball.jpg", "WEIBALL DISTRIBUTION", new BABYLON.Vector3(-1, 1.2, 4));
-      createPictureBoard("poster13", "uniform.jpg", "UNIFORM DISTRIBUTION", new BABYLON.Vector3(2, 1.2, -2));
-      createPictureBoard("poster14", "exponential.jpg", "EXPONENTIAL DISTRIBUTION", new BABYLON.Vector3(-2, 1.2, -1));
-      createPictureBoard("poster15", "hg.jpg", "HYPER GEOMETRIC DISTRIBUTION", new BABYLON.Vector3(0, 1.2, 5));
-
-      // --- Donut (torus) in the air ---
-      const donut = BABYLON.MeshBuilder.CreateTorus("donut", {
-        diameter: 1.6,
-        thickness: 0.5,
-        tessellation: 64
-      }, scene);
+      // --- Donut ---
+      const donut = BABYLON.MeshBuilder.CreateTorus("donut", { diameter: 1.6, thickness: 0.5, tessellation: 64 }, scene);
       donut.position = new BABYLON.Vector3(-1.5, 2.2, -0.5);
       const donutMat = new BABYLON.StandardMaterial("donutMat", scene);
-      donutMat.diffuseColor = new BABYLON.Color3(0.9, 0.5, 0.2);
+      donutMat.diffuseColor = new BABYLON.Color3(0.9,0.5,0.2);
       donut.material = donutMat;
 
-      // --- Coffee cup (hollow cup made with CSG) ---
-      // Outer cup
-      const cupOuter = BABYLON.MeshBuilder.CreateCylinder("cupOuter", {
-        height: 1.1,
-        diameterTop: 1.1,
-        diameterBottom: 1.1,
-        tessellation: 64
-      }, scene);
+      // --- Coffee cup (hollow) ---
+      const cupOuter = BABYLON.MeshBuilder.CreateCylinder("cupOuter", { height: 1.1, diameterTop: 1.1, diameterBottom: 1.1, tessellation: 64 }, scene);
       cupOuter.position = new BABYLON.Vector3(1.5, 1.5, 0.5);
 
-      // Inner cylinder to subtract (slightly shorter and smaller)
-      const cupInner = BABYLON.MeshBuilder.CreateCylinder("cupInner", {
-        height: 1.05,
-        diameterTop: 0.8,
-        diameterBottom: 0.8,
-        tessellation: 64
-      }, scene);
+      const cupInner = BABYLON.MeshBuilder.CreateCylinder("cupInner", { height: 1.05, diameterTop: 0.8, diameterBottom: 0.8, tessellation: 64 }, scene);
       cupInner.position = cupOuter.position.clone();
 
-      // Make materials so we can assign afterwards
       const cupMat = new BABYLON.StandardMaterial("cupMat", scene);
-      cupMat.diffuseColor = new BABYLON.Color3(0.95, 0.95, 0.9); // off-white
-
+      cupMat.diffuseColor = new BABYLON.Color3(0.95, 0.95, 0.9);
       cupOuter.material = cupMat;
       cupInner.material = new BABYLON.StandardMaterial("cupInnerMat", scene);
 
-      // Use CSG to create hollow cup
+      // Hollow cup using CSG
       const outerCSG = BABYLON.CSG.FromMesh(cupOuter);
       const innerCSG = BABYLON.CSG.FromMesh(cupInner);
       const hollowCSG = outerCSG.subtract(innerCSG);
-
-      // Convert CSG back to mesh
       const cup = hollowCSG.toMesh("cup", cupMat, scene);
-      // remove original meshes used for CSG
       cupOuter.dispose();
       cupInner.dispose();
 
-      // Create handle as a torus and position it, then parent to cup (no CSG merge necessary)
-      const handle = BABYLON.MeshBuilder.CreateTorus("handle", {
-        diameter: 0.6,
-        thickness: 0.15,
-        tessellation: 48
-      }, scene);
-      // rotate handle so it makes a cup handle shape and place at side
-      handle.rotation.z = Math.PI / 2;
-      handle.rotation.x = Math.PI / 2;
-      handle.position = new BABYLON.Vector3(cup.position.x + 0.6, cup.position.y + 0.1, cup.position.z);
-      handle.material = cupMat;
-      handle.parent = cup; // parent handle to cup so they move together
+      // --- Handle ---
+      // Parent first so local coordinates work
+      const handle = BABYLON.MeshBuilder.CreateTorus("handle", { diameter: 0.45, thickness: 0.1, tessellation: 48 }, scene);
+      handle.parent = cup;
 
-      // raise the cup a little so it sits in the air nicely
+      // Local position relative to cup
+      handle.position.set(0.55, 0.05, 0); // X offset = 0.55 to the side, slight Y lift
+      handle.rotation.x = Math.PI / 2;     // upright rotation
+      handle.rotation.y = 0;               // facing the right way
+      handle.rotation.z = 0;
+
+      // Material
+      handle.material = cupMat;
+
+      // Raise the cup a bit in the air
       cup.position.y = 1.6;
 
-      // --- Simple animations ---
-      scene.registerBeforeRender(function () {
-        const t = performance.now() * 0.001;
-        donut.rotation.y += 0.01; // slow spin
-        donut.rotation.x = Math.sin(t) * 0.05;
-        // bob the cup up/down gently
-        cup.position.y = 1.6 + Math.sin(t * 1.5) * 0.08;
+      // --- Simple Animations ---
+      scene.registerBeforeRender(() => {
+        const t = performance.now()*0.001;
+        donut.rotation.y += 0.01;
+        donut.rotation.x = Math.sin(t)*0.05;
+        cup.position.y = 1.6 + Math.sin(t*1.5)*0.08;
       });
 
+      // --- Background Music ---
       // --- Background Sound ---
-      const music = new BABYLON.Sound(
-        "backgroundMusic",
-        "Crazy Frog - Axel F (Official Video) (1).mp3",
-        scene,
-        null,
-        {
-          loop: true,
-          autoplay: false,
-          volume: 0.5
+      // Create the music
+// Create the music
+// Create the music
+
+// Wait until the scene is ready
+// --- Background Music ---
+const music = new BABYLON.Sound(
+    "backgroundMusic",
+    "Crazy_Frog.mp3", // Your MP3 file
+    scene,            // The Babylon scene
+    null,             // OnReady callback (optional)
+    {
+        loop: true,
+        autoplay: false, // Must be triggered by user interaction
+        volume: 0.5
+    }
+);
+
+// Listen for key press (M) to play/pause
+window.addEventListener("keydown", async (event) => {
+    if(event.key.toLowerCase() === "m"){
+        if(!music.isPlaying){
+            await music.play();
+            console.log("Music started!");
+        } else {
+            music.pause();
+            console.log("Music paused!");
         }
-      );
+    }
+});
 
-      const xr = await scene.createDefaultXRExperienceAsync({ floorMeshes: [ground] });
-
-      // Start music after entering VR
-      xr.baseExperience.onStateChangedObservable.add((state) => {
-        if (state === BABYLON.WebXRState.IN_XR && !music.isPlaying) {
-          music.play();
+    // Function to initialize audio context on user interaction
+    async function initializeAudio() {
+        if (BABYLON.Engine.audioEngine && !BABYLON.Engine.audioEngine.isInitialized()) {
+            await BABYLON.Engine.audioEngine.initializeAsync();
         }
-      });
+    }
 
+    // Play music after user interaction
 
-      // Enable music playback after user interaction
-      window.addEventListener("click", () => {
-        if (!music.isPlaying) music.play();
-      });
+async function playBackgroundMusic() {
+        await initializeAudio(); // Ensure audio engine is ready
+        const music = await BABYLON.CreateStreamingSoundAsync("music", "Crazy_Frog.mp3", { loop: true, autoplay: true });
+        // The sound will start playing if autoplay is true, or you can call music.play() manually.
+    }
 
-      // --- WebXR / VR Setup ---
-      await scene.createDefaultXRExperienceAsync({ floorMeshes: [ground] });
+      // --- WebXR Setup ---
+      const xr = await scene.createDefaultXRExperienceAsync({ floorMeshes:[ground] });
+      xr.baseExperience.onStateChangedObservable.add(state => { if(state===BABYLON.WebXRState.IN_XR && !music.isPlaying) music.play(); });
+      window.addEventListener("click",()=>{if(!music.isPlaying) music.play();});
 
       return scene;
     };
 
-    (async function () {
-      const scene = await createScene();
-      engine.runRenderLoop(() => scene.render());
-    })();
-
-    window.addEventListener("resize", () => engine.resize());
+    (async function(){ const scene = await createScene(); engine.runRenderLoop(()=>scene.render()); })();
+    window.addEventListener("resize",()=>engine.resize());
   </script>
 </body>
 </html>
