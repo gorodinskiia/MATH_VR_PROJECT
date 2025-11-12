@@ -59,46 +59,88 @@
       groundMaterial.diffuseTexture.vScale = 2;
       ground.material = groundMaterial;
 
-      // --- Picture boards with text ---
-      function createPictureBoard(name, imageUrl, label, position) {
-        const plane = BABYLON.MeshBuilder.CreatePlane(name, { width: 1.5, height: 1.8 }, scene);
-        plane.position = position;
-        plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_Y; // Always face camera
+      // --- Picture boards with text and stands ---
+// --- Picture boards with text, perfectly aligned frames, and stands ---
+function createPictureBoard(name, imageUrl, label, position) {
+  // --- Picture plane ---
+  const plane = BABYLON.MeshBuilder.CreatePlane(name + "Plane", { width: 1.5, height: 1.8 }, scene);
+  plane.position = position.clone();
+  plane.billboardMode = 0;
+  plane.rotation.y = Math.PI; // flip the plane itself so front side faces camera
 
-        // Make sure the plane is double-sided so you can see it from any angle
-        plane.material = new BABYLON.StandardMaterial(name + "Mat", scene);
-        plane.material.backFaceCulling = false;
+  // --- Frame around the picture ---
+  const frameThickness = 0.08;
+  const frame = BABYLON.MeshBuilder.CreateBox(name + "Frame", {
+    width: 1.5 + frameThickness,
+    height: 1.8 + frameThickness,
+    depth: 0.1,
+  }, scene);
+  frame.position = position.clone();
+  frame.position.z -= 0.06;
+  const frameMat = new BABYLON.StandardMaterial(name + "FrameMat", scene);
+  frameMat.diffuseColor = new BABYLON.Color3(0.4, 0.3, 0.2);
+  frameMat.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+  frame.material = frameMat;
 
-        // GUI texture for the plane
-        const texture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(plane, 1024, 1024, false);
+  // --- Stand / Pole ---
+  const standHeight = position.y - 0.05;
+  const stand = BABYLON.MeshBuilder.CreateCylinder(name + "Stand", {
+    height: standHeight,
+    diameter: 0.05,
+  }, scene);
+  stand.position = new BABYLON.Vector3(position.x, standHeight / 2, position.z - 0.05);
+  const standMat = new BABYLON.StandardMaterial(name + "StandMat", scene);
+  standMat.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.7);
+  stand.material = standMat;
 
-        // Container for layout
-        const stackPanel = new BABYLON.GUI.StackPanel();
-        stackPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-        stackPanel.height = 1;
-        stackPanel.width = 1;
-        texture.addControl(stackPanel);
+  // --- Base ---
+  const base = BABYLON.MeshBuilder.CreateCylinder(name + "Base", {
+    height: 0.02,
+    diameter: 0.25,
+  }, scene);
+  base.position = new BABYLON.Vector3(position.x, 0.01, position.z - 0.05);
+  const baseMat = new BABYLON.StandardMaterial(name + "BaseMat", scene);
+  baseMat.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+  base.material = baseMat;
 
-        // --- Text on top ---
-        const text = new BABYLON.GUI.TextBlock();
-        text.text = label;
-        text.color = "white";
-        text.fontSize = 48;
-        text.height = "200px";
-        text.textWrapping = true;
-        text.paddingBottom = "20px";
-        stackPanel.addControl(text);
+  // --- GUI texture (faces camera properly now) ---
+  const texture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(plane, 1024, 1024, false);
 
-        // --- Image below text ---
-        const image = new BABYLON.GUI.Image(name + "Img", imageUrl);
-        image.width = 1;
-        image.height = 0.8;
-        image.stretch = BABYLON.GUI.Image.STRETCH_UNIFORM;
-        image.paddingTop = "20px";
-        stackPanel.addControl(image);
+  const stackPanel = new BABYLON.GUI.StackPanel();
+  stackPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+  stackPanel.height = 1;
+  stackPanel.width = 1;
+  texture.addControl(stackPanel);
 
-        return plane;
-      }
+  const text = new BABYLON.GUI.TextBlock();
+  text.text = label;
+  text.color = "white";
+  text.fontSize = 48;
+  text.height = "200px";
+  text.textWrapping = true;
+  text.paddingBottom = "20px";
+  stackPanel.addControl(text);
+
+  const image = new BABYLON.GUI.Image(name + "Img", imageUrl);
+  image.width = 1;
+  image.height = 0.8;
+  image.stretch = BABYLON.GUI.Image.STRETCH_UNIFORM;
+  image.paddingTop = "20px";
+  stackPanel.addControl(image);
+
+  // --- Group all parts ---
+  const frameGroup = new BABYLON.TransformNode(name + "Group", scene);
+  plane.parent = frameGroup;
+  frame.parent = frameGroup;
+  stand.parent = frameGroup;
+  base.parent = frameGroup;
+
+  return frameGroup;
+}
+
+
+
+
 
       // Example boards
       createPictureBoard("poster1", "nd.jpg", "NORMAL DISTRIBUTION", new BABYLON.Vector3(2, 1.2, 2));
