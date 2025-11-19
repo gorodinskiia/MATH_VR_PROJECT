@@ -45,12 +45,27 @@
       skybox.material = skyboxMaterial;
 
       // Ground
-      const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 10, height: 10 }, scene);
+      // ===== FULL-WORLD GROUND PLATFORM =====
+
+      // Create a ground plane that matches your skybox size (1000 x 1000)
+      const ground = BABYLON.MeshBuilder.CreateGround("ground", { 
+          width: 1000,
+          height: 1000
+      }, scene);
+
+      // Create a material for the ground
       const groundMaterial = new BABYLON.StandardMaterial("groundMat", scene);
+
+      // Apply the ground texture
       groundMaterial.diffuseTexture = new BABYLON.Texture("groundTexture.jpg", scene);
-      groundMaterial.diffuseTexture.uScale = 2;
-      groundMaterial.diffuseTexture.vScale = 2;
+
+      // Make the texture repeat so the ground doesn't look stretched
+      groundMaterial.diffuseTexture.uScale = 100; // tiles 100 times horizontally
+      groundMaterial.diffuseTexture.vScale = 100; // tiles 100 times vertically
+
+      // Assign the material to the ground mesh
       ground.material = groundMaterial;
+
 
       // --- Picture Board Function ---
       function createPictureBoard(name, imageUrl, label, position) {
@@ -120,24 +135,67 @@
       }
 
       // --- Picture Boards ---
-      const boards = [
-        ["poster1","nd.jpg","NORMAL DISTRIBUTION",2,1.2,2],
-        ["poster2","uniform_1.jpg","OTHER DISTRIBUTIONS",-2,1.2,3],
-        ["poster3","guass.jpg","GAUSS",3,1.2,-1],
-        ["poster4","laplace.jpg","LAPLACE",4,1.2,4],
-        ["poster5","beta.jpg","BETA DISTRIBUTION",-3,1.2,-3],
-        ["poster6","cauchy.jpg","CAUCHY DISTRIBUTION",0,1.2,-4],
-        ["poster7","gamma.jpg","GAMMA DISTRIBUTION",5,1.2,0],
-        ["poster8","gumbel.jpg","GUMBEL DISTRIBUTION",-5,1.2,1],
-        ["poster9","laplace.jpg","LAPLACE",1,1.2,-5],
-        ["poster10","log.jpg","LOG DISTRIBUTION",-4,1.2,5],
-        ["poster11","pareto.jpg","PARETO DISTRIBUTION",4,1.2,-3],
-        ["poster12","weiball.jpg","WEIBALL DISTRIBUTION",-1,1.2,4],
-        ["poster13","uniform_1.jpg","UNIFORM DISTRIBUTION",2,1.2,-2],
-        ["poster14","exponential.jpg","EXPONENTIAL DISTRIBUTION",-2,1.2,-1],
-        ["poster15","hg.jpg","HYPER GEOMETRIC DISTRIBUTION",0,1.2,5]
-      ];
-      boards.forEach(b => createPictureBoard(b[0],b[1],b[2],new BABYLON.Vector3(b[3],b[4],b[5])));
+      // --- Picture Boards ---
+        const boards = [
+          ["poster1","nd.jpg","NORMAL DISTRIBUTION",2,1.2,2],
+          ["poster2","uniform_1.jpg","OTHER DISTRIBUTIONS",-2,1.2,3],
+          ["poster3","guass.jpg","GAUSS",3,1.2,-1],
+          ["poster4","laplace.jpg","LAPLACE",4,1.2,4],
+          ["poster5","beta.jpg","BETA DISTRIBUTION",-3,1.2,-3],
+          ["poster6","cauchy.jpg","CAUCHY DISTRIBUTION",0,1.2,-4],
+          ["poster7","gamma.jpg","GAMMA DISTRIBUTION",5,1.2,0],
+          ["poster8","gumbel.jpg","GUMBEL DISTRIBUTION",-5,1.2,1],
+          ["poster9","laplace.jpg","LAPLACE",1,1.2,-5],
+          ["poster10","log.jpg","LOG DISTRIBUTION",-4,1.2,5],
+          ["poster11","pareto.jpg","PARETO DISTRIBUTION",4,1.2,-3],
+          ["poster12","weiball.jpg","WEIBALL DISTRIBUTION",-1,1.2,4],
+          ["poster13","uniform_1.jpg","UNIFORM DISTRIBUTION",2,1.2,-2],
+          ["poster14","exponential.jpg","EXPONENTIAL DISTRIBUTION",-2,1.2,-1],
+          ["poster15","hg.jpg","HYPER GEOMETRIC DISTRIBUTION",0,1.2,5]
+        ];
+
+        // Images you already have
+        const pictureFiles = [
+          "nd.jpg",
+          "uniform_1.jpg",
+          "guass.jpg",
+          "laplace.jpg",
+          "beta.jpg",
+          "cauchy.jpg",
+          "gamma.jpg",
+          "gumbel.jpg",
+          "log.jpg",
+          "pareto.jpg",
+          "weiball.jpg",
+          "exponential.jpg",
+          "hg.jpg"
+        ];
+
+        // Simple title function from filename
+        function titleFromFilename(fn){
+          return fn.replace(".jpg","").replace(/_/g," ").toUpperCase() + " DISTRIBUTION";
+        }
+
+        // --- Generate 100 random additional posters ---
+        for (let i = 16; i <= 115; i++) {
+          const file = pictureFiles[Math.floor(Math.random() * pictureFiles.length)];
+
+          const x = (Math.random() * 30) - 15;   // [-15, 15]
+          const y = 1.2;                         // same height
+          const z = (Math.random() * 30) - 15;   // [-15, 15]
+
+          boards.push([
+            `poster${i}`,
+            file,
+            titleFromFilename(file),
+            x, y, z
+          ]);
+        }
+
+        // Create all boards
+        boards.forEach(b =>
+          createPictureBoard(b[0], b[1], b[2], new BABYLON.Vector3(b[3], b[4], b[5]))
+        );
 
       // --- Donut ---
       const donut = BABYLON.MeshBuilder.CreateTorus("donut", { diameter: 1.6, thickness: 0.5, tessellation: 64 }, scene);
@@ -161,6 +219,105 @@
       handle.position.set(0.55, 0.05, 0);
       handle.rotation.x = Math.PI/2;
       handle.material = cupMat;
+
+      // =======================================================
+// EXTRA DONUTS & CUPS (same as original, random positions)
+// =======================================================
+
+// how many to spawn
+const EXTRA_COUNT = 40;
+
+// world spread range
+const RANGE = 400; // places them anywhere inside the giant 1000x1000 world
+
+function randomPos() {
+    return (Math.random() - 0.5) * RANGE * 2;
+}
+
+// arrays so we can animate them all together
+const extraDonuts = [];
+const extraCups = [];
+
+// ---- Create many donuts ----
+for (let i = 0; i < EXTRA_COUNT; i++) {
+    const d = BABYLON.MeshBuilder.CreateTorus(
+        "donutExtra" + i,
+        { diameter: 1.6, thickness: 0.5, tessellation: 64 },
+        scene
+    );
+
+    d.position = new BABYLON.Vector3(randomPos(), 1.8 + Math.random() * 1.5, randomPos());
+
+    const mat = new BABYLON.StandardMaterial("donutMatExtra" + i, scene);
+    mat.diffuseColor = new BABYLON.Color3(0.9, 0.5, 0.2);
+    mat.alpha = 0;  // start invisible
+    d.material = mat;
+
+    extraDonuts.push({ mesh: d, mat: mat, floatOffset: Math.random() * 100 });
+}
+
+// ---- Create many cups ----
+for (let i = 0; i < EXTRA_COUNT; i++) {
+    const c = BABYLON.MeshBuilder.CreateCylinder(
+        "cupExtra" + i,
+        { height: 1.1, diameterTop: 1.1, diameterBottom: 1.1, tessellation: 64 },
+        scene
+    );
+
+    c.position = new BABYLON.Vector3(randomPos(), 1.2 + Math.random() * 2, randomPos());
+
+    const mat = new BABYLON.StandardMaterial("cupMatExtra" + i, scene);
+    mat.diffuseColor = new BABYLON.Color3(0.95, 0.95, 0.9);
+    mat.alpha = 0; // start invisible
+    c.material = mat;
+
+    // handle (same style as your original)
+    const handle = BABYLON.MeshBuilder.CreateTorus(
+        "handleExtra" + i,
+        { diameter: 0.45, thickness: 0.1, tessellation: 48 },
+        scene
+    );
+
+    handle.parent = c;
+    handle.position.set(0.55, 0.05, 0);
+    handle.rotation.x = Math.PI / 2;
+    handle.material = mat;
+
+    extraCups.push({ mesh: c, mat: mat, floatOffset: Math.random() * 100 });
+}
+
+
+// =======================================================
+// ANIMATION: fade in/out + floating + rotation
+// (Original donut & cup already animate; this adds same animation to new ones)
+// =======================================================
+scene.registerBeforeRender(() => {
+
+    const tNow = performance.now() * 0.001;
+
+    // DONUT ANIMATIONS
+    extraDonuts.forEach((d, idx) => {
+        const a = (Math.sin(tNow + d.floatOffset) + 1) / 2; // 0 → 1 fade
+
+        d.mat.alpha = a;
+
+        d.mesh.rotation.y += 0.01;
+        d.mesh.rotation.x = Math.sin(tNow * 0.6 + d.floatOffset) * 0.1;
+
+        d.mesh.position.y = 1.5 + Math.sin(tNow * 1.4 + d.floatOffset) * 0.2;
+    });
+
+    // CUP ANIMATIONS
+    extraCups.forEach((c, idx) => {
+        const a = (Math.sin(tNow * 0.9 + c.floatOffset) + 1) / 2;
+
+        c.mat.alpha = a;
+
+        c.mesh.position.y =
+            1.2 + Math.sin(tNow * 1.7 + c.floatOffset) * 0.15;
+    });
+});
+
 
       // --- Background Music ---
       const music = new BABYLON.Sound("backgroundMusic", "Crazy_Frog.mp3", scene, null, { loop:true, autoplay:false, volume:0.5 });
@@ -189,8 +346,586 @@
           cup.position.y = 1.6 + Math.sin(performance.now()*0.001*1.5)*0.08;
       });
 
+              // =====================================================================
+        //  EXTRA DONUTS THAT MOVE / BOUNCE RANDOMLY AROUND THE MAP
+        // =====================================================================
+
+        // how many extra donuts to spawn
+        const EXTRA_DONUT_COUNT = 25;
+
+        // world bounds (same as your 1000x1000 ground)
+        const WORLD_SIZE = 480;   // half of 1000, minus margin
+
+        // store all moving donuts
+        const movingDonuts = [];
+
+        function createMovingDonut(id) {
+            // clone same donut style
+            const donut = BABYLON.MeshBuilder.CreateTorus(
+                "donutExtra" + id,
+                { diameter: 1.6, thickness: 0.5, tessellation: 64 },
+                scene
+            );
+
+            // same material style
+            const mat = new BABYLON.StandardMaterial("donutExtraMat" + id, scene);
+            mat.diffuseColor = new BABYLON.Color3(0.9, 0.5, 0.2);
+            mat.alpha = 0;  // fade in/out enabled
+            donut.material = mat;
+
+            // place randomly on map
+            donut.position = new BABYLON.Vector3(
+                (Math.random() * 2 - 1) * WORLD_SIZE,
+                1 + Math.random() * 3,
+                (Math.random() * 2 - 1) * WORLD_SIZE
+            );
+
+            // random movement direction
+            const velocity = new BABYLON.Vector3(
+                (Math.random() * 0.05) - 0.025,
+                (Math.random() * 0.02) - 0.01,
+                (Math.random() * 0.05) - 0.025
+            );
+
+            movingDonuts.push({
+                mesh: donut,
+                mat: mat,
+                velocity: velocity,
+                fadeT: Math.random() * Math.PI * 2 // random fade offset
+            });
+        }
+
+        // create all donuts
+        for (let i = 0; i < EXTRA_DONUT_COUNT; i++) {
+            createMovingDonut(i);
+        }
+
+        // animate donuts
+        scene.registerBeforeRender(() => {
+            for (const d of movingDonuts) {
+
+                // update fade oscillation
+                d.fadeT += 0.02;
+                const alpha = (Math.sin(d.fadeT) + 1) / 2; // 0→1→0
+                d.mat.alpha = alpha;
+
+                // update position
+                d.mesh.position.addInPlace(d.velocity);
+
+                // bounce off world edges
+                if (d.mesh.position.x > WORLD_SIZE || d.mesh.position.x < -WORLD_SIZE) {
+                    d.velocity.x *= -1;
+                }
+                if (d.mesh.position.z > WORLD_SIZE || d.mesh.position.z < -WORLD_SIZE) {
+                    d.velocity.z *= -1;
+                }
+
+                // bounce vertically too
+                if (d.mesh.position.y > 5 || d.mesh.position.y < 0.5) {
+                    d.velocity.y *= -1;
+                }
+
+                // rotate donut for fun
+                d.mesh.rotation.y += 0.02;
+                d.mesh.rotation.x += 0.01;
+            }
+        });
+
+        function createBigBouncingDonut(scene) {
+            // Create donut
+            const donut = BABYLON.MeshBuilder.CreateTorus("bigDonut", { 
+                diameter: 5,          // base size
+                thickness: 1.5        // base thickness
+            }, scene);
+
+            // SCALE 100x
+            donut.scaling = new BABYLON.Vector3(25, 25, 25);
+
+            // Random position around the map
+            donut.position = new BABYLON.Vector3(
+                (Math.random() - 0.5) * 900,
+                20 + Math.random() * 20,
+                (Math.random() - 0.5) * 900
+            );
+
+            // Material
+            const mat = new BABYLON.StandardMaterial("donutMat", scene);
+            mat.diffuseColor = new BABYLON.Color3(
+                0.5 + Math.random()*0.5,
+                0.5 + Math.random()*0.5,
+                0.5 + Math.random()*0.5
+            );
+            donut.material = mat;
+
+            // Random movement direction
+            const velocity = new BABYLON.Vector3(
+                (Math.random() - 0.5) * 0.5,
+                (Math.random() - 0.5) * 0.2,
+                (Math.random() - 0.5) * 0.5
+            );
+
+            // Bounce + float animation
+            scene.onBeforeRenderObservable.add(() => {
+                donut.position.addInPlace(velocity);
+
+                // bounce within boundaries
+                const limit = 480;
+                ["x", "y", "z"].forEach(axis => {
+                    if (donut.position[axis] > limit || donut.position[axis] < -limit) {
+                        velocity[axis] *= -1;
+                    }
+                });
+            });
+
+            return donut;
+        }
+
+
+        // Create lots of giant bouncing donuts
+        for (let i = 0; i < 10; i++) {
+            createBigBouncingDonut(scene);
+        }
+
       // --- WebXR Setup ---
-      const xr = await scene.createDefaultXRExperienceAsync({ floorMeshes:[ground] });
+      // const xr = await scene.createDefaultXRExperienceAsync({ floorMeshes:[ground] });
+      const xr = await scene.createDefaultXRExperienceAsync({
+          optionalFeatures: true,
+          disableTeleportation: false
+      });
+
+      // =======================================
+// SCARY FLYING DEMON WITH FIRE BREATH
+// =======================================
+function createFlyingDemon(scene) {
+    const demon = new BABYLON.TransformNode("demon", scene);
+
+    // Body
+    const body = BABYLON.MeshBuilder.CreateSphere("demonBody", { diameter: 8 }, scene);
+    body.parent = demon;
+
+    // Head
+    const head = BABYLON.MeshBuilder.CreateSphere("demonHead", { diameter: 4 }, scene);
+    head.parent = demon;
+    head.position.y = 6;
+
+    // Eyes (glowing red)
+    const leftEye = BABYLON.MeshBuilder.CreateSphere("leftEye", { diameter: 0.6 }, scene);
+    const rightEye = leftEye.clone("rightEye");
+    leftEye.parent = head;
+    rightEye.parent = head;
+    leftEye.position.set(-1, 0.5, 1.8);
+    rightEye.position.set(1, 0.5, 1.8);
+
+    // Materials
+    const bodyMat = new BABYLON.StandardMaterial("demonMat", scene);
+    bodyMat.diffuseColor = new BABYLON.Color3(0.05, 0.02, 0.02);
+    body.material = bodyMat;
+    head.material = bodyMat;
+
+    const eyeMat = new BABYLON.StandardMaterial("eyeMat", scene);
+    eyeMat.emissiveColor = new BABYLON.Color3(1, 0, 0);
+    leftEye.material = eyeMat;
+    rightEye.material = eyeMat;
+
+    // Random spawn
+    demon.position = new BABYLON.Vector3(
+        (Math.random() - 0.5) * 600,
+        40 + Math.random() * 60,
+        (Math.random() - 0.5) * 600
+    );
+
+    // =============================
+    // FIRE BREATH PARTICLES
+    // =============================
+    const fire = new BABYLON.ParticleSystem("fireBreath", 2000, scene);
+    fire.particleTexture = new BABYLON.Texture("https://playground.babylonjs.com/textures/flame.png", scene);
+
+    fire.emitter = head;
+    fire.minEmitBox = new BABYLON.Vector3(0, 0, 3);
+    fire.maxEmitBox = new BABYLON.Vector3(0, 0, 3.2);
+
+    fire.color1 = new BABYLON.Color4(1, 0.4, 0, 1);
+    fire.color2 = new BABYLON.Color4(1, 0.2, 0, 1);
+    fire.colorDead = new BABYLON.Color4(0, 0, 0, 0);
+
+    fire.direction1 = new BABYLON.Vector3(0, 0, 1);
+    fire.direction2 = new BABYLON.Vector3(0, 0.3, 1);
+
+    fire.minSize = 0.4;
+    fire.maxSize = 1.2;
+    fire.minLifeTime = 0.2;
+    fire.maxLifeTime = 0.6;
+    fire.emitRate = 800;
+
+    fire.start();
+
+    // =============================
+    // MOVEMENT
+    // =============================
+    let velocity = new BABYLON.Vector3(
+        (Math.random() - 0.5) * 1.0,
+        (Math.random() - 0.5) * 0.4,
+        (Math.random() - 0.5) * 1.0
+    );
+
+    scene.onBeforeRenderObservable.add(() => {
+        demon.position.addInPlace(velocity);
+        demon.rotation.y = Math.atan2(velocity.x, velocity.z);
+
+        const limit = 480;
+        ["x","y","z"].forEach(axis => {
+            if (demon.position[axis] > limit || demon.position[axis] < -limit) {
+                velocity[axis] *= -1;
+                velocity.x += (Math.random() - 0.5) * 0.3;
+                velocity.z += (Math.random() - 0.5) * 0.3;
+            }
+        });
+
+        if (Math.random() < 0.005) {
+            velocity.x += (Math.random() - 0.5) * 0.5;
+            velocity.z += (Math.random() - 0.5) * 0.5;
+        }
+    });
+
+    return demon;
+}
+
+// === Spawn 100 Demons ===
+for (let i = 0; i < 100; i++) {
+    createFlyingDemon(scene);
+}
+// ==============================
+// BLOOD RAIN PARTICLES
+// ==============================
+function createBloodRain(scene) {
+    const blood = new BABYLON.ParticleSystem("bloodRain", 8000, scene);
+
+    // Use a red droplet texture
+    blood.particleTexture = new BABYLON.Texture(
+        "https://playground.babylonjs.com/textures/flare.png",
+        scene
+    );
+
+    // Rain from the entire sky
+    blood.emitter = new BABYLON.Vector3(0, 200, 0);
+
+    // Spread the rain across the world
+    blood.minEmitBox = new BABYLON.Vector3(-500, 0, -500);
+    blood.maxEmitBox = new BABYLON.Vector3(500, 0, 500);
+
+    // DARK BLOOD COLORS
+    blood.color1 = new BABYLON.Color4(0.6, 0, 0, 1);
+    blood.color2 = new BABYLON.Color4(0.4, 0, 0, 1);
+    blood.colorDead = new BABYLON.Color4(0.1, 0, 0, 0);
+
+    // Blood droplet size
+    blood.minSize = 0.4;
+    blood.maxSize = 0.9;
+
+    // Droplet lifetime
+    blood.minLifeTime = 1.2;
+    blood.maxLifeTime = 2.4;
+
+    // Rain direction (downward)
+    blood.direction1 = new BABYLON.Vector3(0, -1, 0);
+    blood.direction2 = new BABYLON.Vector3(0, -2, 0);
+
+    // Speed of droplets
+    blood.minEmitPower = 8;
+    blood.maxEmitPower = 18;
+
+    // Intensity of the rain
+    blood.emitRate = 4000;
+
+    // Make droplets fade out smoother
+    blood.addVelocityGradient(0, 0.2);
+    blood.addVelocityGradient(1, 0.1);
+
+    blood.gravity = new BABYLON.Vector3(0, -9.81, 0);
+
+    blood.start();
+
+    return blood;
+}
+
+// Activate blood rain
+createBloodRain(scene);
+
+function createBloodSplashSystem(scene) {
+    const splashes = [];
+
+    scene.onBeforeRenderObservable.add(() => {
+        for (let i = 0; i < 5; i++) {
+            const x = (Math.random() - 0.5) * 800;
+            const z = (Math.random() - 0.5) * 800;
+            const y = 0.05;
+
+            if (Math.random() < 0.15) {
+                const splash = BABYLON.MeshBuilder.CreateDisc("bloodSplash", {
+                    radius: Math.random() * 2 + 1,
+                    tessellation: 16
+                }, scene);
+
+                splash.position = new BABYLON.Vector3(x, y, z);
+                splash.rotation.x = Math.PI / 2;
+
+                const splashMat = new BABYLON.StandardMaterial("bloodSplashMat", scene);
+                splashMat.diffuseColor = new BABYLON.Color3(0.5, 0, 0);
+                splashMat.alpha = 0.7;
+                splash.material = splashMat;
+
+                splashes.push({ mesh: splash, life: 300 });
+            }
+        }
+
+        // Fade splashes
+        splashes.forEach((s, i) => {
+            s.life--;
+            if (s.life < 0) {
+                s.mesh.dispose();
+                splashes.splice(i, 1);
+            }
+        });
+    });
+}
+
+createBloodSplashSystem(scene);
+
+scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+scene.fogDensity = 0.015;
+scene.fogColor = new BABYLON.Color3(0.2, 0, 0);
+
+function createStorm(scene) {
+    // CLOUD DOME
+    const clouds = BABYLON.MeshBuilder.CreateSphere("cloudDome", {
+        diameter: 1200,
+        segments: 32
+    }, scene);
+    clouds.position.y = 200;
+
+    const cloudMat = new BABYLON.StandardMaterial("cloudMat", scene);
+    cloudMat.diffuseTexture = new BABYLON.Texture(
+        "https://i.imgur.com/y9X3W4B.jpeg",
+        scene
+    );
+    cloudMat.diffuseTexture.uScale = 4;
+    cloudMat.diffuseTexture.vScale = 4;
+    cloudMat.alpha = 0.75;
+    cloudMat.backFaceCulling = false;
+    clouds.material = cloudMat;
+
+    // MOVE CLOUDS
+    scene.registerBeforeRender(() => {
+        cloudMat.diffuseTexture.uOffset += 0.0003;
+    });
+
+    // LIGHTNING FLASH + THUNDER
+    const lightning = new BABYLON.PointLight("lightning", new BABYLON.Vector3(0, 150, 0), scene);
+    lightning.diffuse = new BABYLON.Color3(1, 1, 1);
+    lightning.intensity = 0;
+
+    const thunder = new BABYLON.Sound("thunder",
+        "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c67a0fa8e3.mp3?filename=thunder-6282.mp3",
+        scene, null, { volume: 0.5 }
+    );
+
+    setInterval(() => {
+        // Lightning flash
+        lightning.intensity = 40;
+
+        setTimeout(() => lightning.intensity = 0, 100);
+
+        // Thunder after delay
+        setTimeout(() => thunder.play(), 300 + Math.random() * 700);
+    }, 6000 + Math.random() * 4000);
+}
+
+createStorm(scene);
+
+function createDemons(scene) {
+    const demonMeshes = [];
+
+    for (let i = 0; i < 12; i++) {
+        const demon = BABYLON.MeshBuilder.CreateSphere("demon" + i, {
+            diameter: 8
+        }, scene);
+
+        demon.position = new BABYLON.Vector3(
+            (Math.random() - 0.5) * 800,
+            Math.random() * 80 + 20,
+            (Math.random() - 0.5) * 800
+        );
+
+        const mat = new BABYLON.StandardMaterial("demonMat" + i, scene);
+        mat.emissiveColor = new BABYLON.Color3(0.7, 0, 0); // glowing red
+        mat.alpha = 1; // ALWAYS VISIBLE
+        demon.material = mat;
+
+        demonMeshes.push(demon);
+    }
+
+    // Floating animation
+    scene.registerBeforeRender(() => {
+        demonMeshes.forEach((d, index) => {
+            d.position.y += Math.sin(performance.now() * 0.001 + index) * 0.03;
+        });
+    });
+}
+
+createDemons(scene);
+
+function demonAI(demon, player, scene) {
+    const speed = 0.05;
+
+    scene.onBeforeRenderObservable.add(() => {
+        const direction = player.position.subtract(demon.position);
+        const distance = direction.length();
+
+        if (distance < 40) {  
+            direction.normalize();
+            demon.position.addInPlace(direction.scale(speed));
+
+            // Rotate to face player
+            demon.lookAt(player.position);
+        }
+
+        // Attack when close
+        if (distance < 2) {
+            shakeCamera(scene);
+            splatterBloodOnCamera();
+        }
+    });
+}
+// Function to create a normal distribution line mesh
+    function createNormalCurve(mean=0, std=1, scale=10) {
+        const points = [];
+        for (let x=-4; x<=4; x+=0.05) {
+            const y = (1/(std*Math.sqrt(2*Math.PI))) * Math.exp(-0.5*Math.pow((x-mean)/std,2));
+            points.push(new BABYLON.Vector3(x*scale, y*scale*5, 0));
+        }
+        const curve = BABYLON.MeshBuilder.CreateLines("normalCurve", {points: points}, scene);
+        curve.color = new BABYLON.Color3(1,0,0); // red
+        curve.alpha = 0.9;
+        return curve;
+    }
+
+    // Function to make graphs float up and down
+    function animateFloatingGraph(mesh) {
+        const startY = mesh.position.y;
+        mesh.registerBeforeRender(() => {
+            mesh.position.y = startY + Math.sin(performance.now()*0.001) * 2;
+        });
+    }
+
+    // Spawn multiple floating graphs
+    for (let i=0;i<20;i++) {
+        const graph = createNormalCurve();
+        graph.position = new BABYLON.Vector3(
+            (Math.random()-0.5)*80,
+            Math.random()*10 + 5,
+            (Math.random()-0.5)*80
+        );
+        graph.rotation = new BABYLON.Vector3(0, Math.random()*Math.PI*2, 0);
+        animateFloatingGraph(graph);
+    }
+     // Function to create a uniform distribution line mesh (PDF)
+    function createUniformCurve(a=0, b=1, scale=20) {
+        const points = [];
+        points.push(new BABYLON.Vector3(a*scale, 0, 0));
+        points.push(new BABYLON.Vector3(a*scale, 1*scale, 0));
+        points.push(new BABYLON.Vector3(b*scale, 1*scale, 0));
+        points.push(new BABYLON.Vector3(b*scale, 0, 0));
+        const curve = BABYLON.MeshBuilder.CreateLines("uniformCurve", {points: points, updatable:false}, scene);
+        curve.color = new BABYLON.Color3(0,1,0); // green
+        curve.alpha = 0.9;
+        return curve;
+    }
+
+    // Floating animation
+    function animateFloatingGraph(mesh) {
+        const startY = mesh.position.y;
+        mesh.registerBeforeRender(() => {
+            mesh.position.y = startY + Math.sin(performance.now()*0.001) * 2;
+        });
+    }
+
+    // Spawn multiple floating uniform graphs
+    for (let i=0;i<20;i++) {
+        const graph = createUniformCurve(0,1);
+        graph.position = new BABYLON.Vector3(
+            (Math.random()-0.5)*80,
+            Math.random()*10 + 5,
+            (Math.random()-0.5)*80
+        );
+        graph.rotation = new BABYLON.Vector3(0, Math.random()*Math.PI*2, 0);
+        animateFloatingGraph(graph);
+    }
+
+    // Function to create exponential distribution curve
+    function createExponentialCurve(lambda=1, scale=10) {
+        const points = [];
+        for (let x=0; x<=5; x+=0.05) {
+            const y = lambda * Math.exp(-lambda * x);
+            points.push(new BABYLON.Vector3(x*scale, y*scale*5, 0));
+        }
+        const curve = BABYLON.MeshBuilder.CreateLines("expCurve", {points: points}, scene);
+        curve.color = new BABYLON.Color3(0,0,1); // blue
+        curve.alpha = 0.9;
+        return curve;
+    }
+
+    // Floating animation
+    function animateFloatingGraph(mesh) {
+        const startY = mesh.position.y;
+        mesh.registerBeforeRender(() => {
+            mesh.position.y = startY + Math.sin(performance.now()*0.001) * 2;
+        });
+    }
+
+    // Spawn multiple exponential curves
+    for (let i=0;i<20;i++) {
+        const graph = createExponentialCurve(1);
+        graph.position = new BABYLON.Vector3(
+            (Math.random()-0.5)*80,
+            Math.random()*10 + 5,
+            (Math.random()-0.5)*80
+        );
+        graph.rotation = new BABYLON.Vector3(0, Math.random()*Math.PI*2, 0);
+        animateFloatingGraph(graph);
+    }
+
+    // --- CRAZY RAVE LIGHTS ---
+const raveLights = [];
+const colors = [
+    new BABYLON.Color3(1,0,0),
+    new BABYLON.Color3(0,1,0),
+    new BABYLON.Color3(0,0,1),
+    new BABYLON.Color3(1,1,0),
+    new BABYLON.Color3(0,1,1),
+    new BABYLON.Color3(1,0,1)
+];
+
+for (let i = 0; i < 12; i++) {
+    const light = new BABYLON.PointLight("raveLight" + i,
+        new BABYLON.Vector3((Math.random()-0.5)*100, Math.random()*30+5, (Math.random()-0.5)*100),
+        scene
+    );
+    light.diffuse = colors[Math.floor(Math.random()*colors.length)];
+    light.intensity = 0.5;
+    raveLights.push(light);
+}
+
+// Animate lights: moving and flickering
+scene.registerBeforeRender(() => {
+    const t = performance.now() * 0.002;
+    raveLights.forEach((light, idx) => {
+        light.position.x += Math.sin(t + idx) * 0.5;
+        light.position.z += Math.cos(t + idx*1.1) * 0.5;
+        light.intensity = 0.5 + 0.5 * Math.sin(t*3 + idx); // flicker
+        light.diffuse = colors[(Math.floor(t*0.1) + idx) % colors.length]; // cycling colors
+    });
+});
+
 
       return scene;
     };
