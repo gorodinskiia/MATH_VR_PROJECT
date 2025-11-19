@@ -320,7 +320,7 @@ scene.registerBeforeRender(() => {
 
 
       // --- Background Music ---
-      const music = new BABYLON.Sound("backgroundMusic", "Crazy_Frog.mp3", scene, null, { loop:true, autoplay:false, volume:0.5 });
+      const music = new BABYLON.Sound("backgroundMusic", "Crazy_Frog.mp3", scene, null, { loop:true, autoplay:true, volume:.75 });
       window.addEventListener("keydown", async (event) => {
           if(event.key.toLowerCase() === "m"){
               if(!music.isPlaying){
@@ -346,7 +346,7 @@ scene.registerBeforeRender(() => {
           cup.position.y = 1.6 + Math.sin(performance.now()*0.001*1.5)*0.08;
       });
 
-              // =====================================================================
+        // =====================================================================
         //  EXTRA DONUTS THAT MOVE / BOUNCE RANDOMLY AROUND THE MAP
         // =====================================================================
 
@@ -692,7 +692,7 @@ function createBloodSplashSystem(scene) {
 createBloodSplashSystem(scene);
 
 scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-scene.fogDensity = 0.015;
+scene.fogDensity = 0.005;
 scene.fogColor = new BABYLON.Color3(0.2, 0, 0);
 
 function createStorm(scene) {
@@ -925,6 +925,141 @@ scene.registerBeforeRender(() => {
         light.diffuse = colors[(Math.floor(t*0.1) + idx) % colors.length]; // cycling colors
     });
 });
+
+// --- RANDOM LASERS ---
+const lasers = [];
+const laserCount = 200;
+
+function createLaser(scene) {
+    const laserMat = new BABYLON.StandardMaterial("laserMat", scene);
+    laserMat.emissiveColor = new BABYLON.Color3(1,0,0); // red laser
+    laserMat.alpha = 0.9;
+
+    // Create thin cylinder as laser
+    const laser = BABYLON.MeshBuilder.CreateCylinder("laser", {
+        diameter: 0.05,
+        height: 50,
+        tessellation: 6
+    }, scene);
+    laser.material = laserMat;
+
+    // Random starting position
+    laser.position = new BABYLON.Vector3(
+        (Math.random()-0.5)*100,
+        Math.random()*20 + 5,
+        (Math.random()-0.5)*100
+    );
+
+    // Random rotation direction
+    laser.rotation = new BABYLON.Vector3(
+        Math.random()*Math.PI,
+        Math.random()*Math.PI,
+        Math.random()*Math.PI
+    );
+
+    // Laser visibility toggle
+    laser.isVisible = false;
+
+    return laser;
+}
+
+// Spawn lasers
+for (let i = 0; i < laserCount; i++) {
+    lasers.push(createLaser(scene));
+}
+
+// Animate lasers randomly shooting
+scene.registerBeforeRender(() => {
+    const t = performance.now() * 0.002;
+
+    lasers.forEach((laser, idx) => {
+        // Randomly toggle visibility to simulate shooting
+        if (Math.random() < 0.01) {
+            laser.isVisible = true;
+            // Move laser along its local Z axis
+            laser.position.addInPlace(BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(0,0,1), laser.getWorldMatrix()).scale(5));
+        }
+
+        // Fade out slowly
+        if (laser.isVisible) {
+            laser.material.alpha -= 0.02;
+            if (laser.material.alpha <= 0) {
+                laser.isVisible = false;
+                laser.material.alpha = 0.9;
+                // Reset position
+                laser.position = new BABYLON.Vector3(
+                    (Math.random()-0.5)*100,
+                    Math.random()*20 + 5,
+                    (Math.random()-0.5)*100
+                );
+            }
+        }
+    });
+});
+
+// --- 200 RANDOM PROBABILITY FACT BOARDS WITH BLACK BORDER ---
+const probabilityFacts = [
+    "The probability of rolling a 6 on a fair die is 1/6.",
+    "In a fair coin toss, P(Heads) = 0.5.",
+    "The sum of probabilities in a probability distribution equals 1.",
+    "Independent events: P(A ∩ B) = P(A) * P(B).",
+    "Conditional probability: P(A|B) = P(A ∩ B)/P(B).",
+    "Expectation of X: E[X] = Σ x P(X=x).",
+    "Variance: Var(X) = E[(X - E[X])²].",
+    "Chebyshev's inequality bounds probability of large deviations.",
+    "The Central Limit Theorem: sums of i.i.d. variables approach normal distribution.",
+    "Bayes' theorem relates conditional probabilities: P(A|B) = P(B|A)P(A)/P(B)."
+];
+
+// Function to create a fact board with black border
+function createFactBoard(fact, position, scene) {
+    // Parent transform node
+    const frameGroup = new BABYLON.TransformNode("factGroup", scene);
+
+    // Black border plane
+    const borderPlane = BABYLON.MeshBuilder.CreatePlane("borderPlane", { width: 5.5, height: 2.5 }, scene);
+    borderPlane.position = position.clone();
+    borderPlane.parent = frameGroup;
+    const borderMat = new BABYLON.StandardMaterial("borderMat", scene);
+    borderMat.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    borderPlane.material = borderMat;
+
+    // Text plane on top
+    const textPlane = BABYLON.MeshBuilder.CreatePlane("textPlane", { width: 5, height: 2 }, scene);
+    textPlane.position = position.clone();
+    textPlane.parent = frameGroup;
+
+    const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(textPlane);
+    const textBlock = new BABYLON.GUI.TextBlock();
+    textBlock.text = fact;
+    textBlock.color = "yellow";
+    textBlock.fontSize = 40;
+    textBlock.textWrapping = true;
+    advancedTexture.addControl(textBlock);
+
+    // Rotate the whole group slowly
+    scene.registerBeforeRender(() => {
+        frameGroup.rotation.y += 0.001;
+    });
+
+    return frameGroup;
+}
+
+// Create 200 ground-level fact boards
+for (let i = 0; i < 200; i++) {
+    const fact = probabilityFacts[Math.floor(Math.random() * probabilityFacts.length)];
+    const position = new BABYLON.Vector3(
+        (Math.random() - 0.5) * 800,  // x position
+        1,                            // y position (ground level)
+        (Math.random() - 0.5) * 800  // z position
+    );
+    createFactBoard(fact, position, scene);
+}
+
+
+
+
+
 
 
       return scene;
