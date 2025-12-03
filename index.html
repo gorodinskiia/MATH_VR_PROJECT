@@ -34,37 +34,29 @@
       // Lighting
       const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0), scene);
       light.intensity = 0.9;
-
-      // Skybox
-      const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
-      const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMat", scene);
-      skyboxMaterial.backFaceCulling = false;
-      skyboxMaterial.diffuseTexture = new BABYLON.Texture("background.jpg", scene);
-      skyboxMaterial.diffuseTexture.coordinatesMode = BABYLON.Texture.FIXED_EQUIRECTANGULAR_MODE;
-      skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-      skybox.material = skyboxMaterial;
-
       // Ground
       // ===== FULL-WORLD GROUND PLATFORM =====
 
       // Create a ground plane that matches your skybox size (1000 x 1000)
-      const ground = BABYLON.MeshBuilder.CreateGround("ground", { 
-          width: 1000,
-          height: 1000
-      }, scene);
+      const ground = BABYLON.MeshBuilder.CreateGround("ground", {
+    width: 2000,
+    height: 2000,
+    subdivisions: 32
+}, scene);
 
-      // Create a material for the ground
-      const groundMaterial = new BABYLON.StandardMaterial("groundMat", scene);
+// === MATERIAL FOR THE GROUND ===
+const groundMaterial = new BABYLON.StandardMaterial("groundMat", scene);
 
-      // Apply the ground texture
-      groundMaterial.diffuseTexture = new BABYLON.Texture("groundTexture.jpg", scene);
+// Apply the ground texture
+groundMaterial.diffuseTexture = new BABYLON.Texture("ground.jpg", scene);
 
-      // Make the texture repeat so the ground doesn't look stretched
-      groundMaterial.diffuseTexture.uScale = 100; // tiles 100 times horizontally
-      groundMaterial.diffuseTexture.vScale = 100; // tiles 100 times vertically
+// Make the texture repeat so the ground doesn't look stretched
+groundMaterial.diffuseTexture.uScale = 100;
+groundMaterial.diffuseTexture.vScale = 100;
 
-      // Assign the material to the ground mesh
-      ground.material = groundMaterial;
+// Assign material to the ground mesh
+ground.material = groundMaterial;
+
 
 
       // --- Picture Board Function ---
@@ -178,19 +170,20 @@
 
         // --- Generate 100 random additional posters ---
         for (let i = 16; i <= 115; i++) {
-          const file = pictureFiles[Math.floor(Math.random() * pictureFiles.length)];
+            const file = pictureFiles[Math.floor(Math.random() * pictureFiles.length)];
 
-          const x = (Math.random() * 30) - 15;   // [-15, 15]
-          const y = 1.2;                         // same height
-          const z = (Math.random() * 30) - 15;   // [-15, 15]
+            // spread them over a larger area, e.g., [-50, 50]
+            const x = (Math.random() * 100) - 50; 
+            const y = 1.2;
+            const z = (Math.random() * 100) - 50;
 
-          boards.push([
-            `poster${i}`,
-            file,
-            titleFromFilename(file),
-            x, y, z
-          ]);
-        }
+            boards.push([
+                `poster${i}`,
+                file,
+                titleFromFilename(file),
+                x, y, z
+            ]);
+            }
 
         // Create all boards
         boards.forEach(b =>
@@ -431,54 +424,86 @@ scene.registerBeforeRender(() => {
             }
         });
 
-        function createBigBouncingDonut(scene) {
-            // Create donut
-            const donut = BABYLON.MeshBuilder.CreateTorus("bigDonut", { 
-                diameter: 5,          // base size
-                thickness: 1.5        // base thickness
-            }, scene);
+        function createBigBouncingDonut(scene, xr) {
+    // Create donut
+    const donut = BABYLON.MeshBuilder.CreateTorus("bigDonut", { 
+        diameter: 5,
+        thickness: 1.5,
+        tessellation: 64
+    }, scene);
 
-            // SCALE 100x
-            donut.scaling = new BABYLON.Vector3(25, 25, 25);
+    donut.scaling = new BABYLON.Vector3(25, 25, 25);
 
-            // Random position around the map
-            donut.position = new BABYLON.Vector3(
-                (Math.random() - 0.5) * 900,
-                20 + Math.random() * 20,
-                (Math.random() - 0.5) * 900
-            );
+    // Random position around the map
+    donut.position = new BABYLON.Vector3(
+        (Math.random() - 0.5) * 900,
+        20 + Math.random() * 20,
+        (Math.random() - 0.5) * 900
+    );
 
-            // Material
-            const mat = new BABYLON.StandardMaterial("donutMat", scene);
-            mat.diffuseColor = new BABYLON.Color3(
-                0.5 + Math.random()*0.5,
-                0.5 + Math.random()*0.5,
-                0.5 + Math.random()*0.5
-            );
-            donut.material = mat;
+    // Material
+    const mat = new BABYLON.StandardMaterial("donutMat", scene);
+    mat.diffuseColor = new BABYLON.Color3(
+        0.5 + Math.random() * 0.5,
+        0.5 + Math.random() * 0.5,
+        0.5 + Math.random() * 0.5
+    );
+    donut.material = mat;
 
-            // Random movement direction
-            const velocity = new BABYLON.Vector3(
-                (Math.random() - 0.5) * 0.5,
-                (Math.random() - 0.5) * 0.2,
-                (Math.random() - 0.5) * 0.5
-            );
+    // Add physics impostor for grabbing and throwing
+    donut.physicsImpostor = new BABYLON.PhysicsImpostor(
+        donut,
+        BABYLON.PhysicsImpostor.SphereImpostor, // approximate donut as a sphere
+        { mass: 5, friction: 0.5, restitution: 0.7 }, // mass allows it to be thrown
+        scene
+    );
 
-            // Bounce + float animation
-            scene.onBeforeRenderObservable.add(() => {
-                donut.position.addInPlace(velocity);
+    // Random movement direction
+    const velocity = new BABYLON.Vector3(
+        (Math.random() - 0.5) * 0.5,
+        (Math.random() - 0.5) * 0.2,
+        (Math.random() - 0.5) * 0.5
+    );
 
-                // bounce within boundaries
-                const limit = 480;
-                ["x", "y", "z"].forEach(axis => {
-                    if (donut.position[axis] > limit || donut.position[axis] < -limit) {
-                        velocity[axis] *= -1;
-                    }
-                });
+    // Bounce + float animation
+    scene.onBeforeRenderObservable.add(() => {
+        if (!donut.isGrabbed) { // only move automatically if not grabbed
+            donut.position.addInPlace(velocity);
+
+            // bounce within boundaries
+            const limit = 480;
+            ["x", "y", "z"].forEach(axis => {
+                if (donut.position[axis] > limit || donut.position[axis] < -limit) {
+                    velocity[axis] *= -1;
+                }
             });
-
-            return donut;
         }
+    });
+
+    // Enable XR grab interactions
+    if (xr) {
+        const grabFeature = xr.baseExperience.featuresManager.enableFeature(
+            BABYLON.WebXRFeatureName.GRABBING,
+            "latest",
+            {
+                enableNearInteraction: true,
+                grabMeshes: [donut]
+            }
+        );
+
+        // Optional: store a flag to pause automatic movement while grabbed
+        grabFeature.onMeshGrabbedObservable.add((mesh) => {
+            mesh.isGrabbed = true;
+        });
+
+        grabFeature.onMeshReleasedObservable.add((mesh) => {
+            mesh.isGrabbed = false;
+        });
+    }
+
+    return donut;
+}
+
 
 
         // Create lots of giant bouncing donuts
@@ -487,11 +512,12 @@ scene.registerBeforeRender(() => {
         }
 
       // --- WebXR Setup ---
-      // const xr = await scene.createDefaultXRExperienceAsync({ floorMeshes:[ground] });
-      const xr = await scene.createDefaultXRExperienceAsync({
-          optionalFeatures: true,
-          disableTeleportation: false
-      });
+      const xr = await scene.createDefaultXRExperienceAsync({ floorMeshes:[ground] });
+
+      const fm = xr.baseExperience.featuresManager;
+
+
+      
 
       // =======================================
 // SCARY FLYING DEMON WITH FIRE BREATH
@@ -589,6 +615,7 @@ function createFlyingDemon(scene) {
 
     return demon;
 }
+
 
 // === Spawn 100 Demons ===
 for (let i = 0; i < 100; i++) {
@@ -691,56 +718,11 @@ function createBloodSplashSystem(scene) {
 
 createBloodSplashSystem(scene);
 
-scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-scene.fogDensity = 0.005;
-scene.fogColor = new BABYLON.Color3(0.2, 0, 0);
+//scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+//scene.fogDensity = 0.005;
+//scene.fogColor = new BABYLON.Color3(0.2, 0, 0);
 
-function createStorm(scene) {
-    // CLOUD DOME
-    const clouds = BABYLON.MeshBuilder.CreateSphere("cloudDome", {
-        diameter: 1200,
-        segments: 32
-    }, scene);
-    clouds.position.y = 200;
 
-    const cloudMat = new BABYLON.StandardMaterial("cloudMat", scene);
-    cloudMat.diffuseTexture = new BABYLON.Texture(
-        "https://i.imgur.com/y9X3W4B.jpeg",
-        scene
-    );
-    cloudMat.diffuseTexture.uScale = 4;
-    cloudMat.diffuseTexture.vScale = 4;
-    cloudMat.alpha = 0.75;
-    cloudMat.backFaceCulling = false;
-    clouds.material = cloudMat;
-
-    // MOVE CLOUDS
-    scene.registerBeforeRender(() => {
-        cloudMat.diffuseTexture.uOffset += 0.0003;
-    });
-
-    // LIGHTNING FLASH + THUNDER
-    const lightning = new BABYLON.PointLight("lightning", new BABYLON.Vector3(0, 150, 0), scene);
-    lightning.diffuse = new BABYLON.Color3(1, 1, 1);
-    lightning.intensity = 0;
-
-    const thunder = new BABYLON.Sound("thunder",
-        "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c67a0fa8e3.mp3?filename=thunder-6282.mp3",
-        scene, null, { volume: 0.5 }
-    );
-
-    setInterval(() => {
-        // Lightning flash
-        lightning.intensity = 40;
-
-        setTimeout(() => lightning.intensity = 0, 100);
-
-        // Thunder after delay
-        setTimeout(() => thunder.play(), 300 + Math.random() * 700);
-    }, 6000 + Math.random() * 4000);
-}
-
-createStorm(scene);
 
 function createDemons(scene) {
     const demonMeshes = [];
@@ -796,103 +778,115 @@ function demonAI(demon, player, scene) {
         }
     });
 }
-// Function to create a normal distribution line mesh
-    function createNormalCurve(mean=0, std=1, scale=10) {
-        const points = [];
-        for (let x=-4; x<=4; x+=0.05) {
-            const y = (1/(std*Math.sqrt(2*Math.PI))) * Math.exp(-0.5*Math.pow((x-mean)/std,2));
-            points.push(new BABYLON.Vector3(x*scale, y*scale*5, 0));
-        }
-        const curve = BABYLON.MeshBuilder.CreateLines("normalCurve", {points: points}, scene);
-        curve.color = new BABYLON.Color3(1,0,0); // red
-        curve.alpha = 0.9;
-        return curve;
-    }
+    // === Floating animation ===
+function animateFloatingGraph(mesh) {
+    const startY = mesh.position.y;
+    mesh.registerBeforeRender(() => {
+        mesh.position.y = startY + Math.sin(performance.now() * 0.001) * 2;
+    });
+}
 
-    // Function to make graphs float up and down
-    function animateFloatingGraph(mesh) {
-        const startY = mesh.position.y;
-        mesh.registerBeforeRender(() => {
-            mesh.position.y = startY + Math.sin(performance.now()*0.001) * 2;
-        });
+// === Normal distribution ===
+function createNormalCurve() {
+    const points = [];
+    for (let x = -4; x <= 4; x += 0.05) {
+        const y = (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * x * x);
+        points.push(new BABYLON.Vector3(x * 10, y * 50, 0));
     }
+    const curve = BABYLON.MeshBuilder.CreateLines("normalCurve", { points }, scene);
+    curve.color = new BABYLON.Color3(1, 0, 0); // red
+    curve.alpha = 0.9;
+    return curve;
+}
 
-    // Spawn multiple floating graphs
-    for (let i=0;i<20;i++) {
-        const graph = createNormalCurve();
-        graph.position = new BABYLON.Vector3(
-            (Math.random()-0.5)*80,
-            Math.random()*10 + 5,
-            (Math.random()-0.5)*80
-        );
-        graph.rotation = new BABYLON.Vector3(0, Math.random()*Math.PI*2, 0);
+// === Uniform distribution ===
+function createUniformCurve() {
+    const points = [
+        new BABYLON.Vector3(0, 0, 0),
+        new BABYLON.Vector3(0, 20, 0),
+        new BABYLON.Vector3(20, 20, 0),
+        new BABYLON.Vector3(20, 0, 0)
+    ];
+    const curve = BABYLON.MeshBuilder.CreateLines("uniformCurve", { points }, scene);
+    curve.color = new BABYLON.Color3(0, 1, 0); // green
+    curve.alpha = 0.9;
+    return curve;
+}
+
+// === Exponential distribution ===
+function createExponentialCurve() {
+    const points = [];
+    const lambda = 1;
+    for (let x = 0; x <= 5; x += 0.05) {
+        const y = lambda * Math.exp(-lambda * x);
+        points.push(new BABYLON.Vector3(x * 10, y * 50, 0));
+    }
+    const curve = BABYLON.MeshBuilder.CreateLines("expCurve", { points }, scene);
+    curve.color = new BABYLON.Color3(0, 0, 1); // blue
+    curve.alpha = 0.9;
+    return curve;
+}
+// === UI Setup ===
+const guiTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+const promptText = new BABYLON.GUI.TextBlock();
+promptText.text = "Pick up: ?";
+promptText.color = "white";
+promptText.fontSize = 36;
+promptText.top = "-40px";
+guiTexture.addControl(promptText);
+
+// === Target tracking ===
+const distributions = ["Normal", "Uniform", "Exponential"];
+let currentTargetIndex = 0;
+
+function updatePrompt() {
+    if (currentTargetIndex < distributions.length) {
+        promptText.text = "Pick up: " + distributions[currentTargetIndex];
+    } else {
+        promptText.text = "All done!";
+    }
+}
+// === Spawn multiple floating graphs ===
+// === Spawn multiple floating graphs with more spread ===
+function spawnGraphs(createFunc, label, count = 20) {
+    for (let i = 0; i < count; i++) {
+        const graph = createFunc();
+        const posX = (Math.random() - 0.5) * 800;
+        const posY = Math.random() * 20 + 5;
+        const posZ = (Math.random() - 0.5) * 800;
+
+        graph.position = new BABYLON.Vector3(posX, posY, posZ);
+        graph.rotation = new BABYLON.Vector3(0, Math.random() * Math.PI * 2, 0);
         animateFloatingGraph(graph);
-    }
-     // Function to create a uniform distribution line mesh (PDF)
-    function createUniformCurve(a=0, b=1, scale=20) {
-        const points = [];
-        points.push(new BABYLON.Vector3(a*scale, 0, 0));
-        points.push(new BABYLON.Vector3(a*scale, 1*scale, 0));
-        points.push(new BABYLON.Vector3(b*scale, 1*scale, 0));
-        points.push(new BABYLON.Vector3(b*scale, 0, 0));
-        const curve = BABYLON.MeshBuilder.CreateLines("uniformCurve", {points: points, updatable:false}, scene);
-        curve.color = new BABYLON.Color3(0,1,0); // green
-        curve.alpha = 0.9;
-        return curve;
-    }
 
-    // Floating animation
-    function animateFloatingGraph(mesh) {
-        const startY = mesh.position.y;
-        mesh.registerBeforeRender(() => {
-            mesh.position.y = startY + Math.sin(performance.now()*0.001) * 2;
-        });
-    }
+        // === Add floating text ===
+        const plane = BABYLON.MeshBuilder.CreatePlane(label + "_label_" + i, { size: 15 }, scene);
+        plane.position = new BABYLON.Vector3(posX, posY + 15, posZ); // above the graph
+        plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL; // always faces camera
 
-    // Spawn multiple floating uniform graphs
-    for (let i=0;i<20;i++) {
-        const graph = createUniformCurve(0,1);
-        graph.position = new BABYLON.Vector3(
-            (Math.random()-0.5)*80,
-            Math.random()*10 + 5,
-            (Math.random()-0.5)*80
-        );
-        graph.rotation = new BABYLON.Vector3(0, Math.random()*Math.PI*2, 0);
-        animateFloatingGraph(graph);
-    }
+        const dynamicTexture = new BABYLON.DynamicTexture("dynamicTexture_" + i, {width:512, height:256}, scene);
+        dynamicTexture.hasAlpha = true;
+        const mat = new BABYLON.StandardMaterial("mat_" + i, scene);
+        mat.diffuseTexture = dynamicTexture;
+        mat.emissiveColor = new BABYLON.Color3(1, 0.84, 0); // bright gold
+        plane.material = mat;
 
-    // Function to create exponential distribution curve
-    function createExponentialCurve(lambda=1, scale=10) {
-        const points = [];
-        for (let x=0; x<=5; x+=0.05) {
-            const y = lambda * Math.exp(-lambda * x);
-            points.push(new BABYLON.Vector3(x*scale, y*scale*5, 0));
-        }
-        const curve = BABYLON.MeshBuilder.CreateLines("expCurve", {points: points}, scene);
-        curve.color = new BABYLON.Color3(0,0,1); // blue
-        curve.alpha = 0.9;
-        return curve;
+        const ctx = dynamicTexture.getContext();
+        ctx.clearRect(0, 0, 512, 256);
+        ctx.font = "bold 80px Arial";
+        ctx.fillStyle = "gold";
+        ctx.textAlign = "center";
+        ctx.fillText(label, 256, 150);
+        dynamicTexture.update();
     }
+}
 
-    // Floating animation
-    function animateFloatingGraph(mesh) {
-        const startY = mesh.position.y;
-        mesh.registerBeforeRender(() => {
-            mesh.position.y = startY + Math.sin(performance.now()*0.001) * 2;
-        });
-    }
+// Spawn graphs with labels
+spawnGraphs(createNormalCurve, "Normal");
+spawnGraphs(createUniformCurve, "Uniform");
+spawnGraphs(createExponentialCurve, "Exponential");
 
-    // Spawn multiple exponential curves
-    for (let i=0;i<20;i++) {
-        const graph = createExponentialCurve(1);
-        graph.position = new BABYLON.Vector3(
-            (Math.random()-0.5)*80,
-            Math.random()*10 + 5,
-            (Math.random()-0.5)*80
-        );
-        graph.rotation = new BABYLON.Vector3(0, Math.random()*Math.PI*2, 0);
-        animateFloatingGraph(graph);
-    }
 
     // --- CRAZY RAVE LIGHTS ---
 const raveLights = [];
@@ -1060,7 +1054,7 @@ for (let i = 0; i < 200; i++) {
 
 
 
-
+//python3 -m http.server 8000
 
       return scene;
     };
